@@ -1,3 +1,10 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
+.idea/
+
 # Logs
 logs
 *.log

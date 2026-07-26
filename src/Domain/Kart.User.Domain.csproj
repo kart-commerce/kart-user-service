@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      kart-user-service is the first Kart service to actually consume Kart.Shared.Domain
+      (AggregateRoot/Result/Error/OutboxEventBase) rather than hand-rolling an equivalent
+      shape locally, per kart-shared's own "one platform-wide implementation" intent.
+      No published NuGet feed exists yet (kart-shared/README.md), so this is a cross-repo
+      ProjectReference until one does.
+    -->
+    <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.Domain\Kart.Shared.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,53 @@
+{
+  "service": "kart-user-service",
+  "exchanges": [
+    { "name": "user.exchange", "type": "topic", "durable": true },
+    { "name": "user.dlx", "type": "topic", "durable": true }
+  ],
+  "externalExchanges": [
+    { "name": "identity.exchange", "type": "topic", "durable": true }
+  ],
+  "publishedEvents": [
+    { "eventType": "UserProfileUpdated", "exchange": "user.exchange", "routingKey": "user.profile-updated" },
+    { "eventType": "UserNotificationPreferenceUpdated", "exchange": "user.exchange", "routingKey": "user.notification-preference-updated" },
+    { "eventType": "UserDataErased", "exchange": "user.exchange", "routingKey": "user.data-erased" }
+  ],
+  "queues": [
+    {
+      "name": "user.user-registered.queue",
+      "durable": true,
+      "bindings": [
+        { "exchange": "identity.exchange", "routingKey": "identity.user.registered" }
+      ],
+      "deadLetter": { "exchange": "user.dlx", "routingKey": "user.user-registered.dlq" },
+      "retryLadder": {
+        "requeueTo": "user.user-registered.queue",
+        "tiers": [
+          { "name": "user.user-registered.retry.30s", "ttlMs": 30000 },
+          { "name": "user.user-registered.retry.120s", "ttlMs": 120000 },
+          { "name": "user.user-registered.retry.300s", "ttlMs": 300000 }
+        ]
+      }
+    },
+    {
+      "name": "user.user-account-updated.queue",
+      "durable": true,
+      "bindings": [
+        { "exchange": "identity.exchange", "routingKey": "identity.user-account.updated" }
+      ],
+      "deadLetter": { "exchange": "user.dlx", "routingKey": "user.user-account-updated.dlq" },
+      "retryLadder": {
+        "requeueTo": "user.user-account-updated.queue",
+        "tiers": [
+          { "name": "user.user-account-updated.retry.30s", "ttlMs": 30000 },
+          { "name": "user.user-account-updated.retry.120s", "ttlMs": 120000 }
+        ]
+      }
+    }
+  ],
+  "deadLetterQueues": [
+    { "name": "user.user-registered.dlq", "exchange": "user.dlx", "routingKey": "user.user-registered.dlq" },
+    { "name": "user.user-account-updated.dlq", "exchange": "user.dlx", "routingKey": "user.user-account-updated.dlq" }
+  ],
+  "_comment": "This service's own consumed-event queues only (per event-contract.md's 'never shared DLQ across event types' rule: UserRegistered gets the 3x retry ladder matching Identity's own publish-side tier, UserAccountUpdated gets 2x). UserDataErased's 7 downstream consumer queues (Order/Notification/Analytics/Review/Recommendation/Wishlist/Identity) each live in that consumer's own manifest, not here — this service is only the publisher of that event. The internal MongoDB read-model projection (UserProfileUpdated/UserDataErased -> user_read_model) is an in-process poller reading this service's own outbox table directly (see Infrastructure/Messaging/ReadModelProjectionHostedService.cs), not a bound queue on this exchange — so it has no entry in this manifest."
+}

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.21" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Application\Kart.User.Application.csproj" />
+    <ProjectReference Include="..\Infrastructure\Kart.User.Infrastructure.csproj" />
+
+    <!--
+      Kart.Shared.* has real, finished source but no published NuGet feed yet
+      (kart-shared/README.md) — cross-repo ProjectReference until one exists.
+      kart-user-service is the first Kart service to actually wire these, rather than
+      hand-rolling a local copy the way kart-identity-service/kart-category-service did.
+    -->
+    <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.ErrorHandling\Kart.Shared.ErrorHandling.csproj" />
+    <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.Observability\Kart.Shared.Observability.csproj" />
+    <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.Auditing\Kart.Shared.Auditing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\contracts\message-bus-manifest.json" Link="message-bus-manifest.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

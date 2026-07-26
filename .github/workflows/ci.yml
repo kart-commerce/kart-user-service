@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+jobs:
+  ci:
+    uses: kart-commerce/kart-devops/.github/workflows/dotnet-service-ci.yml@main
+    with:
+      solution-path: KartUserService.sln
+      dotnet-version: "8.0.x"
+      # This service cross-repo-references kart-shared/src/Kart.Shared.* (no published NuGet
+      # feed exists yet — kart-shared/README.md). The reusable workflow must check out
+      # kart-commerce/kart-shared as a sibling directory before `dotnet restore`/`build` — same
+      # requirement the Dockerfile's own build-context comment documents. If the reusable
+      # workflow does not yet support a sibling-repo checkout input, this is a known follow-up
+      # (track as a kart-devops ticket, not something this service's own CI file can fix alone).
+    secrets: inherit
