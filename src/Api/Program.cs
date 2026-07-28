@@ -1,4 +1,5 @@
 using Kart.Shared.Auditing;
+using Kart.Shared.Configuration;
 using Kart.Shared.ErrorHandling;
 using Kart.Shared.Observability;
 using Kart.User.Api;
@@ -10,6 +11,10 @@ using Kart.User.Infrastructure;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// kart-conventions.md Configuration Management: GlobalConfig external-secrets-file bootstrap,
+// shared across every service - never reimplemented per service. See appsettings.Local.json.example.
+builder.AddKartGlobalConfig();
 
 builder.AddKartObservability("kart-user-service");
 

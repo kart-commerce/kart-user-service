@@ -3,6 +3,7 @@ using Kart.User.Infrastructure.Messaging;
 using Kart.User.Infrastructure.Persistence;
 using Kart.User.Infrastructure.Persistence.ReadModel;
 using Kart.User.Infrastructure.Security;
+using Kart.Shared.Messaging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -66,21 +67,14 @@ public static class DependencyInjection
 
         // --- Config-driven message bus (BRD §9) ---------------------------------------------
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
-        services.AddSingleton(sp =>
+        services.AddKartMessageBusManifest(sp => sp.GetRequiredService<IOptions<RabbitMqOptions>>().Value.ManifestPath);
+        services.AddKartRabbitMqConnectionFactory(sp =>
         {
             var options = sp.GetRequiredService<IOptions<RabbitMqOptions>>().Value;
-            var manifestPath = Path.IsPathRooted(options.ManifestPath)
-                ? options.ManifestPath
-                : Path.Combine(AppContext.BaseDirectory, options.ManifestPath);
-            return MessageBusManifestLoader.Load(manifestPath);
-        });
-        services.AddSingleton<IConnectionFactory>(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<RabbitMqOptions>>().Value;
-            return new ConnectionFactory { HostName = options.HostName, DispatchConsumersAsync = true };
+            return new RabbitMqConnectionSettings(options.HostName);
         });
 
-        services.AddHostedService<RabbitMqTopologyStartupHostedService>();
+        services.AddKartRabbitMqTopologyStartup();
         services.AddHostedService<OutboxRelayHostedService>();
         services.AddHostedService<ReadModelProjectionHostedService>();
         services.AddHostedService<UserRegisteredConsumerHostedService>();

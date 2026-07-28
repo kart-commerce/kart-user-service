@@ -8,6 +8,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\Kart.User.Application.csproj" />
     <ProjectReference Include="..\Domain\Kart.User.Domain.csproj" />
+    <!-- Kart.Shared.* has real, finished source but no published NuGet feed yet -->
+    <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.Messaging\Kart.Shared.Messaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

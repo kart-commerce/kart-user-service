@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Kart.Shared.Messaging;
 using Kart.User.Application.Features.ReconcileIdentityContactCopy;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +16,7 @@ public sealed class UserAccountUpdatedConsumerHostedService(
     MessageBusManifest manifest,
     IServiceScopeFactory scopeFactory,
     ILogger<UserAccountUpdatedConsumerHostedService> logger)
-    : RabbitMqConsumerHostedServiceBase(connectionFactory, manifest, scopeFactory, logger)
+    : RabbitMqConsumerHostedServiceBase(connectionFactory, manifest, scopeFactory, logger, "x-user-service-retry-count")
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 

@@ -1,3 +1,4 @@
+using Kart.Shared.Messaging;
 using Kart.User.Infrastructure.Messaging;
 using Kart.User.Infrastructure.Persistence;
 using Kart.User.Infrastructure.Persistence.ReadModel;
