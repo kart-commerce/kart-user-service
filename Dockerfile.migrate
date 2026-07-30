@@ -1,0 +1,48 @@
+# Build context must be the kart-commerce parent directory, not this repo, because
+# Kart.User.Infrastructure/Domain/Application cross-repo-reference kart-shared/src/Kart.Shared.*
+# (Messaging, Domain, Auditing — no published NuGet feed exists yet, kart-shared/README.md; same
+# reason the main Dockerfile isn't self-contained either). Build from kart-commerce/ with:
+#   docker build -f kart-user-service/Dockerfile.migrate -t kart-user-service-migrate:latest .
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY kart-user-service/Directory.Build.props kart-user-service/
+COPY kart-user-service/.config/dotnet-tools.json kart-user-service/.config/
+COPY kart-user-service/src/Application/Kart.User.Application.csproj kart-user-service/src/Application/
+COPY kart-user-service/src/Domain/Kart.User.Domain.csproj kart-user-service/src/Domain/
+COPY kart-user-service/src/Infrastructure/Kart.User.Infrastructure.csproj kart-user-service/src/Infrastructure/
+COPY kart-shared/Directory.Build.props kart-shared/
+COPY kart-shared/src/Kart.Shared.Messaging/Kart.Shared.Messaging.csproj kart-shared/src/Kart.Shared.Messaging/
+COPY kart-shared/src/Kart.Shared.Domain/Kart.Shared.Domain.csproj kart-shared/src/Kart.Shared.Domain/
+COPY kart-shared/src/Kart.Shared.Auditing/Kart.Shared.Auditing.csproj kart-shared/src/Kart.Shared.Auditing/
+WORKDIR /src/kart-user-service
+RUN dotnet tool restore
+RUN dotnet restore src/Infrastructure/Kart.User.Infrastructure.csproj
+
+WORKDIR /src
+COPY kart-user-service/src/Application kart-user-service/src/Application
+COPY kart-user-service/src/Domain kart-user-service/src/Domain
+COPY kart-user-service/src/Infrastructure kart-user-service/src/Infrastructure
+COPY kart-shared/src/Kart.Shared.Messaging kart-shared/src/Kart.Shared.Messaging
+COPY kart-shared/src/Kart.Shared.Domain kart-shared/src/Kart.Shared.Domain
+COPY kart-shared/src/Kart.Shared.Auditing kart-shared/src/Kart.Shared.Auditing
+
+# Infrastructure is its own design-time startup project — UserDbContextFactory builds the
+# DbContext directly from USER_DB_CONNECTION_STRING, no Api host needed. Self-contained: the
+# runtime stage needs no .NET runtime, just OS deps (runtime-deps).
+WORKDIR /src/kart-user-service
+RUN dotnet tool run dotnet-ef migrations bundle \
+    --configuration Release \
+    --self-contained -r linux-x64 \
+    --project src/Infrastructure/Kart.User.Infrastructure.csproj \
+    --startup-project src/Infrastructure/Kart.User.Infrastructure.csproj \
+    -o /app/efbundle
+
+FROM mcr.microsoft.com/dotnet/runtime-deps:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/efbundle .
+
+# Same env var UserDbContextFactory reads at design time (see
+# src/Infrastructure/Persistence/UserDbContextFactory.cs) — one convention for
+# "how this service learns its connection string," in dev, CI, and every deployed env.
+ENTRYPOINT ["/bin/sh", "-c", "exec ./efbundle --connection \"$USER_DB_CONNECTION_STRING\""]

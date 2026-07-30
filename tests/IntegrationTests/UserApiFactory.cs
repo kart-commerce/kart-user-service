@@ -30,6 +30,11 @@ public sealed class UserApiFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Tells StartupConnectivityChecks to skip itself — this factory removes the real
+        // RabbitMQ registrations below and swaps Postgres/MongoDB for test doubles, so there's
+        // nothing real for it to connect to.
+        builder.UseEnvironment("Testing");
+
         builder.ConfigureServices(services =>
         {
             _sqliteConnection.Open();
