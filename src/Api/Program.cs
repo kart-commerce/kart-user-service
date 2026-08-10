@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // kart-conventions.md Configuration Management: GlobalConfig external-secrets-file bootstrap,
 // shared across every service - never reimplemented per service. See appsettings.Local.json.example.
-builder.AddKartGlobalConfig();
+builder.AddKartGlobalConfig("kart-user-service");
 
 builder.AddKartObservability("kart-user-service");
 
