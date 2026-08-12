@@ -39,6 +39,7 @@ public sealed class GetUserProfileContractTests : IClassFixture<UserApiFactory>,
         }
 
         var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.SubHeader, userId);
         HttpResponseMessage response;
         var deadline = DateTime.UtcNow.AddSeconds(10);
         do
@@ -65,10 +66,40 @@ public sealed class GetUserProfileContractTests : IClassFixture<UserApiFactory>,
     [Fact]
     public async Task LiveBehavior_UnknownUser_Returns404()
     {
+        var userId = Guid.NewGuid().ToString();
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.SubHeader, userId);
+
+        var response = await client.GetAsync($"/v1/users/{userId}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task LiveBehavior_RequestingAnotherUsersProfile_Returns403()
+    {
+        var ownerUserId = Guid.NewGuid().ToString();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var sender = scope.ServiceProvider.GetRequiredService<ISender>();
+            await sender.Send(new CreateUserProfileOnRegistrationCommand(ownerUserId, "owner@example.com"));
+        }
+
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.SubHeader, Guid.NewGuid().ToString());
+
+        var response = await client.GetAsync($"/v1/users/{ownerUserId}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task LiveBehavior_NoAuth_Returns401()
+    {
         var client = _factory.CreateClient();
 
         var response = await client.GetAsync($"/v1/users/{Guid.NewGuid()}");
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

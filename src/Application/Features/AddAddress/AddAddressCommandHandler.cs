@@ -6,10 +6,14 @@ using Kart.User.Domain.Entities;
 using Kart.User.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Kart.User.Application.Features.AddAddress;
 
-public sealed class AddAddressCommandHandler(IUserDbContext dbContext, IDateTimeProvider dateTimeProvider)
+public sealed class AddAddressCommandHandler(
+    IUserDbContext dbContext,
+    IDateTimeProvider dateTimeProvider,
+    ILogger<AddAddressCommandHandler> logger)
     : IRequestHandler<AddAddressCommand, Result<AddressResponse>>
 {
     public async Task<Result<AddressResponse>> Handle(AddAddressCommand request, CancellationToken cancellationToken)
@@ -45,6 +49,7 @@ public sealed class AddAddressCommandHandler(IUserDbContext dbContext, IDateTime
             createdBy: request.ActingPrincipalId));
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Stage {Stage}: address persisted for user {UserId}", "AddressPersisted", profile.UserId);
 
         return Result.Success(new AddressResponse(
             address.AddressId, address.Type.ToString(), address.Line1, address.Line2,

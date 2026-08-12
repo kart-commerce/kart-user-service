@@ -41,6 +41,6 @@ public sealed class CreateUserProfileOnRegistrationCommandHandler(
             createdBy: "system:identity-registration-consumer"));
 
         await dbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("UserProfile created for {UserId} from UserRegistered", request.UserId);
+        logger.LogInformation("Stage {Stage}: UserProfile projection persisted for {UserId} from UserRegistered", "UserProfileProjectionPersisted", request.UserId);
     }
 }

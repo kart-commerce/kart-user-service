@@ -36,6 +36,7 @@ public sealed class UserRegistrationAndProfileFlowTests : IClassFixture<UserApiF
         }
 
         var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.SubHeader, userId);
 
         var profile = await Eventually.Assert(
             async () =>
@@ -54,9 +55,11 @@ public sealed class UserRegistrationAndProfileFlowTests : IClassFixture<UserApiF
     [Fact]
     public async Task GetUserProfile_UnknownUser_Returns404()
     {
+        var userId = Guid.NewGuid().ToString();
         var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.SubHeader, userId);
 
-        var response = await client.GetAsync($"/v1/users/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/v1/users/{userId}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

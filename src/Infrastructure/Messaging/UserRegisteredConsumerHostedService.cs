@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Kart.Shared.Messaging;
+using Kart.Shared.Observability;
+using Kart.User.Application.Common;
 using Kart.User.Application.Features.CreateUserProfileOnRegistration;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +26,9 @@ public sealed class UserRegisteredConsumerHostedService(
 
     protected override async Task ProcessAsync(ReadOnlyMemory<byte> body, IServiceProvider scopedProvider, CancellationToken cancellationToken)
     {
+        using var _ = KartFlowContext.Push(FlowNames.UserRegistrationLoginAuthentication);
+        logger.LogInformation("Stage {Stage}: UserRegistered consumed from {Queue}", "UserRegisteredConsumed", QueueName);
+
         var payload = JsonSerializer.Deserialize<UserRegisteredPayload>(body.Span, SerializerOptions)
             ?? throw new InvalidOperationException("UserRegistered payload deserialized to null.");
 

@@ -63,5 +63,6 @@ public sealed class ReconcileIdentityContactCopyCommandHandler(
             createdBy: "system:identity-account-sync-consumer"));
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Stage {Stage}: identity contact copy reconciled for {UserId}", "IdentityContactCopyReconciled", request.UserId);
     }
 }
