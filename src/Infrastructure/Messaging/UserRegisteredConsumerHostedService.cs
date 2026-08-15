@@ -39,10 +39,6 @@ public sealed class UserRegisteredConsumerHostedService(
             payload.UserId);
 
         var sender = scopedProvider.GetRequiredService<ISender>();
-        logger.LogInformation(
-            "Stage {Stage}: dispatching CreateUserProfileOnRegistrationCommand for user {UserId}",
-            "CreateUserProfileOnRegistrationCommandDispatched",
-            payload.UserId);
         await sender.Send(new CreateUserProfileOnRegistrationCommand(payload.UserId, payload.Email), cancellationToken);
     }
 

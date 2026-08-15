@@ -34,21 +34,15 @@ public sealed class ReadModelProjectionHostedService(
     private const int BatchSize = 50;
 
     /// <summary>
-    /// Registered in kart-shared's ObservabilityExtensions alongside "Kart.Shared.Messaging.
-    /// RabbitMq" — this poller has no RabbitMQ span of its own to inherit from (it runs seconds
-    /// after the original request, on an unrelated async context), so it starts its own span
-    /// parented off each outbox row's stored <see cref="OutboxEvent.TraceParent"/> instead.
+    /// This poller has no RabbitMQ span of its own to inherit from (it runs seconds after the
+    /// original request, on an unrelated async context), so it starts its own span parented off
+    /// each outbox row's stored <see cref="OutboxEvent.TraceParent"/> instead.
     /// </summary>
     private static readonly ActivitySource ActivitySource = new("Kart.User.ReadModelProjection", "1.0.0");
 
-    /// <summary>
-    /// This poller folds every outbox row regardless of <see cref="OutboxEvent.EventType"/> or
-    /// originating flow into one denormalized document per user, but only Phase 1's Registration,
-    /// Login &amp; Authentication flow (business-flows.md flow #2) has a known Flow mapping today —
-    /// CreateUserProfileOnRegistrationCommandHandler's own <c>createdBy</c> literal. Extending
-    /// this map is exactly Phase 3's job as each further flow gets instrumented; an unrecognized
-    /// <c>CreatedBy</c> deliberately gets no Flow tag rather than a guessed/incorrect one.
-    /// </summary>
+    /// <summary>Maps an outbox row's <c>CreatedBy</c> to the Flow that produced it. An unrecognized
+    /// value deliberately gets no Flow tag rather than a guessed one — extend as new flows write
+    /// through this projector.</summary>
     private static string? FlowFor(string createdBy) => createdBy switch
     {
         "system:identity-registration-consumer" => FlowNames.UserRegistrationLoginAuthentication,
@@ -119,12 +113,6 @@ public sealed class ReadModelProjectionHostedService(
                 logger.LogWarning("Outbox row references user {UserId} with no corresponding user_profiles row; skipping projection.", userId);
                 continue;
             }
-
-            logger.LogInformation(
-                "Stage {Stage}: read model write started for user {UserId} from outbox event {OutboxEventId}",
-                "ReadModelWriteStarted",
-                userId,
-                drivingEvent.Id);
 
             await readModel.UpsertAsync(UserProfileMapper.ToResponse(profile), cancellationToken);
 
