@@ -27,16 +27,27 @@ public sealed class UserRegisteredConsumerHostedService(
     protected override async Task ProcessAsync(ReadOnlyMemory<byte> body, IServiceProvider scopedProvider, CancellationToken cancellationToken)
     {
         using var _ = KartFlowContext.Push(FlowNames.UserRegistrationLoginAuthentication);
-        logger.LogInformation("Stage {Stage}: UserRegistered consumed from {Queue}", "UserRegisteredConsumed", QueueName);
 
         var payload = JsonSerializer.Deserialize<UserRegisteredPayload>(body.Span, SerializerOptions)
             ?? throw new InvalidOperationException("UserRegistered payload deserialized to null.");
 
+        logger.LogInformation(
+            "Stage {Stage}: UserRegistered event {EventId} consumed from {Queue} for user {UserId}",
+            "UserRegisteredConsumed",
+            payload.EventId,
+            QueueName,
+            payload.UserId);
+
         var sender = scopedProvider.GetRequiredService<ISender>();
+        logger.LogInformation(
+            "Stage {Stage}: dispatching CreateUserProfileOnRegistrationCommand for user {UserId}",
+            "CreateUserProfileOnRegistrationCommandDispatched",
+            payload.UserId);
         await sender.Send(new CreateUserProfileOnRegistrationCommand(payload.UserId, payload.Email), cancellationToken);
     }
 
     private sealed record UserRegisteredPayload(
         [property: JsonPropertyName("userId")] string UserId,
-        [property: JsonPropertyName("email")] string? Email);
+        [property: JsonPropertyName("email")] string? Email,
+        [property: JsonPropertyName("eventId")] string? EventId);
 }

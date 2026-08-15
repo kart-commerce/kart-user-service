@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Kart.Shared.Domain;
@@ -32,6 +33,18 @@ public sealed class OutboxEvent : OutboxEventBase
 
     public string UserId { get; private set; } = string.Empty;
     public DateTimeOffset? ProjectedAt { get; private set; }
+
+    /// <summary>
+    /// The originating request/consumer's W3C traceparent, captured here at the single
+    /// <see cref="Create"/> choke point — mirrors kart-identity-service's own
+    /// <c>OutboxEvent.TraceParent</c>. <see cref="ReadModelProjectionHostedService"/> runs on its
+    /// own background-poller async context, seconds later, where <c>Activity.Current</c> would
+    /// otherwise be meaningless; reading this back lets its Stage-tagged logs continue the same
+    /// trace the original HTTP request or RabbitMQ consume started, instead of showing up as an
+    /// unrelated/untraced gap between "outbox row written" and "read model updated".
+    /// </summary>
+    public string? TraceParent { get; private set; }
+
     public string CreatedBy { get; private set; } = string.Empty;
     public DateTimeOffset UpdatedAt { get; private set; }
     public string UpdatedBy { get; private set; } = "system:user-outbox-poller";
@@ -48,6 +61,7 @@ public sealed class OutboxEvent : OutboxEventBase
             occurredAt: now)
         {
             UserId = userId,
+            TraceParent = Activity.Current?.Id,
             CreatedBy = createdBy,
             UpdatedAt = now
         };

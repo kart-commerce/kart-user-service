@@ -23,7 +23,10 @@ public sealed class CreateUserProfileOnRegistrationCommandHandler(
         var alreadyExists = await dbContext.UserProfiles.AnyAsync(p => p.UserId == request.UserId, cancellationToken);
         if (alreadyExists)
         {
-            logger.LogInformation("UserRegistered redelivered for {UserId}; profile already exists, no-op", request.UserId);
+            logger.LogInformation(
+                "Stage {Stage}: UserRegistered redelivered for {UserId}; profile already exists, no-op",
+                "UserProfileCreationSkippedAlreadyExists",
+                request.UserId);
             return;
         }
 
@@ -33,14 +36,20 @@ public sealed class CreateUserProfileOnRegistrationCommandHandler(
 
         // Internal-only projection trigger (never externally published — see OutboxEvent's own
         // doc comment) so the Mongo read model gets its initial document.
-        dbContext.OutboxEvents.Add(OutboxEvent.Create(
+        var projectionRequested = OutboxEvent.Create(
             request.UserId,
             OutboxEvent.ReadModelProjectionRequested,
             payloadJson: JsonSerializer.Serialize(new { userId = request.UserId }),
             now,
-            createdBy: "system:identity-registration-consumer"));
+            createdBy: "system:identity-registration-consumer");
+        dbContext.OutboxEvents.Add(projectionRequested);
 
         await dbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Stage {Stage}: UserProfile projection persisted for {UserId} from UserRegistered", "UserProfileProjectionPersisted", request.UserId);
+        logger.LogInformation(
+            "Stage {Stage}: UserProfile projection persisted for {UserId} from UserRegistered, outbox event {OutboxEventId} ({EventType}) enqueued",
+            "UserProfileProjectionPersisted",
+            request.UserId,
+            projectionRequested.Id,
+            OutboxEvent.ReadModelProjectionRequested);
     }
 }

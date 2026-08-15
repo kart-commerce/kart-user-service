@@ -22,6 +22,7 @@ public sealed class OutboxEventConfiguration : IEntityTypeConfiguration<OutboxEv
         builder.Property(e => e.OccurredAt).HasColumnName("occurred_at");
         builder.Property(e => e.PublishedAt).HasColumnName("published_at");
         builder.Property(e => e.ProjectedAt).HasColumnName("projected_at");
+        builder.Property(e => e.TraceParent).HasColumnName("trace_parent");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by");
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
         builder.Property(e => e.UpdatedBy).HasColumnName("updated_by");
