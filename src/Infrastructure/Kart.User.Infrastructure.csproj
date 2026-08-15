@@ -8,6 +8,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\Kart.User.Application.csproj" />
     <ProjectReference Include="..\Domain\Kart.User.Domain.csproj" />
+    <!-- Kart.Shared.* has real, finished source but no published NuGet feed yet -->
+    <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.Messaging\Kart.Shared.Messaging.csproj" />
+    <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.Observability\Kart.Shared.Observability.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,7 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
     <PackageReference Include="MongoDB.Driver" Version="2.30.0" />

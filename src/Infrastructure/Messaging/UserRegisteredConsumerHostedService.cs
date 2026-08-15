@@ -1,5 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Kart.Shared.Messaging;
+using Kart.Shared.Observability;
+using Kart.User.Application.Common;
 using Kart.User.Application.Features.CreateUserProfileOnRegistration;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +18,7 @@ public sealed class UserRegisteredConsumerHostedService(
     MessageBusManifest manifest,
     IServiceScopeFactory scopeFactory,
     ILogger<UserRegisteredConsumerHostedService> logger)
-    : RabbitMqConsumerHostedServiceBase(connectionFactory, manifest, scopeFactory, logger)
+    : RabbitMqConsumerHostedServiceBase(connectionFactory, manifest, scopeFactory, logger, "x-user-service-retry-count")
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
@@ -23,8 +26,17 @@ public sealed class UserRegisteredConsumerHostedService(
 
     protected override async Task ProcessAsync(ReadOnlyMemory<byte> body, IServiceProvider scopedProvider, CancellationToken cancellationToken)
     {
+        using var _ = KartFlowContext.Push(FlowNames.UserRegistrationLoginAuthentication);
+
         var payload = JsonSerializer.Deserialize<UserRegisteredPayload>(body.Span, SerializerOptions)
             ?? throw new InvalidOperationException("UserRegistered payload deserialized to null.");
+
+        logger.LogInformation(
+            "Stage {Stage}: UserRegistered event {EventId} consumed from {Queue} for user {UserId}",
+            "UserRegisteredConsumed",
+            payload.EventId,
+            QueueName,
+            payload.UserId);
 
         var sender = scopedProvider.GetRequiredService<ISender>();
         await sender.Send(new CreateUserProfileOnRegistrationCommand(payload.UserId, payload.Email), cancellationToken);
@@ -32,5 +44,6 @@ public sealed class UserRegisteredConsumerHostedService(
 
     private sealed record UserRegisteredPayload(
         [property: JsonPropertyName("userId")] string UserId,
-        [property: JsonPropertyName("email")] string? Email);
+        [property: JsonPropertyName("email")] string? Email,
+        [property: JsonPropertyName("eventId")] string? EventId);
 }

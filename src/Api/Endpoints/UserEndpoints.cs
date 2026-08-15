@@ -1,5 +1,7 @@
 using Kart.Shared.ErrorHandling;
 using Kart.Shared.Domain;
+using Kart.Shared.Observability;
+using Kart.User.Application.Common;
 using Kart.User.Application.Common.Models;
 using Kart.User.Application.Features.AddAddress;
 using Kart.User.Application.Features.GetUserProfile;
@@ -12,9 +14,12 @@ namespace Kart.User.Api.Endpoints;
 
 /// <summary>
 /// api-contract.yaml's client-facing surface: <c>/v1/users/{userId}</c> and its address-book
-/// sub-resource. Every mutating endpoint here is <c>self</c>-scoped (requirement-spec.md
-/// §24.1.2: "a one-line resource.userId == token.sub check") — enforced inline, not via a
-/// separate authorization-policy abstraction, since it genuinely is a one-line comparison.
+/// sub-resource. Every endpoint here — including the profile GET, previously left
+/// `AllowAnonymous()` despite returning the full address book (street lines, phone numbers) for
+/// any guessed userId, closed as part of the User Registration, Login &amp; Authentication
+/// Journey flow build — is <c>self</c>-scoped (requirement-spec.md §24.1.2: "a one-line
+/// resource.userId == token.sub check") — enforced inline, not via a separate
+/// authorization-policy abstraction, since it genuinely is a one-line comparison.
 /// </summary>
 public static class UserEndpoints
 {
@@ -24,8 +29,8 @@ public static class UserEndpoints
 
         group.MapGet("/{userId}", GetUserProfile)
             .WithName("getUserProfile")
-            .AllowAnonymous() // read path — api-contract.yaml has no `security` on the GET operation
             .Produces<UserProfileResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPatch("/{userId}", UpdateUserPreferences)
@@ -59,6 +64,11 @@ public static class UserEndpoints
 
     private static async Task<IResult> GetUserProfile(string userId, HttpContext httpContext, ISender sender, CancellationToken cancellationToken)
     {
+        if (!IsSelf(httpContext, userId))
+        {
+            return Forbid(httpContext);
+        }
+
         var result = await sender.Send(new GetUserProfileQuery(userId), cancellationToken);
         return result.IsSuccess ? Results.Ok(result.Value) : NotFound(httpContext, result.Error);
     }
@@ -91,6 +101,8 @@ public static class UserEndpoints
     private static async Task<IResult> AddAddress(
         string userId, AddressRequest request, HttpContext httpContext, ISender sender, CancellationToken cancellationToken)
     {
+        using var _ = KartFlowContext.Push(FlowNames.UserRegistrationLoginAuthentication);
+
         if (!IsSelf(httpContext, userId))
         {
             return Forbid(httpContext);

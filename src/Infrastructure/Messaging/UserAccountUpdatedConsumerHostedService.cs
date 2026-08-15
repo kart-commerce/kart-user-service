@@ -1,5 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Kart.Shared.Messaging;
+using Kart.Shared.Observability;
+using Kart.User.Application.Common;
 using Kart.User.Application.Features.ReconcileIdentityContactCopy;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +18,7 @@ public sealed class UserAccountUpdatedConsumerHostedService(
     MessageBusManifest manifest,
     IServiceScopeFactory scopeFactory,
     ILogger<UserAccountUpdatedConsumerHostedService> logger)
-    : RabbitMqConsumerHostedServiceBase(connectionFactory, manifest, scopeFactory, logger)
+    : RabbitMqConsumerHostedServiceBase(connectionFactory, manifest, scopeFactory, logger, "x-user-service-retry-count")
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
@@ -23,6 +26,9 @@ public sealed class UserAccountUpdatedConsumerHostedService(
 
     protected override async Task ProcessAsync(ReadOnlyMemory<byte> body, IServiceProvider scopedProvider, CancellationToken cancellationToken)
     {
+        using var _ = KartFlowContext.Push(FlowNames.UserRegistrationLoginAuthentication);
+        logger.LogInformation("Stage {Stage}: UserAccountUpdated consumed from {Queue}", "UserAccountUpdatedConsumed", QueueName);
+
         var payload = JsonSerializer.Deserialize<UserAccountUpdatedPayload>(body.Span, SerializerOptions)
             ?? throw new InvalidOperationException("UserAccountUpdated payload deserialized to null.");
 

@@ -8,6 +8,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.21" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -23,6 +27,7 @@
     <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.ErrorHandling\Kart.Shared.ErrorHandling.csproj" />
     <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.Observability\Kart.Shared.Observability.csproj" />
     <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.Auditing\Kart.Shared.Auditing.csproj" />
+    <ProjectReference Include="..\..\..\kart-shared\src\Kart.Shared.Configuration\Kart.Shared.Configuration.csproj" />
   </ItemGroup>
 
   <ItemGroup>

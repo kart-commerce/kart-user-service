@@ -3,6 +3,7 @@ using Kart.User.Infrastructure.Messaging;
 using Kart.User.Infrastructure.Persistence;
 using Kart.User.Infrastructure.Persistence.ReadModel;
 using Kart.User.Infrastructure.Security;
+using Kart.Shared.Messaging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -29,6 +30,15 @@ public static class DependencyInjection
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
             .Configure<JwksSigningKeyResolver, IOptions<JwtOptions>>((options, resolver, jwtOptions) =>
             {
+                // Without this, ASP.NET Core's default inbound-claim mapping renames the token's
+                // literal "sub" claim to the long ClaimTypes.NameIdentifier URI before this
+                // service's own IsSelf check (UserEndpoints.cs, `FindFirst("sub")`) ever sees it —
+                // the same claim-mapping defect a previous flow found in kart-category-service's
+                // AdminOnly policy, here silently making every self-scoped endpoint 403 for every
+                // caller regardless of whether they actually own the resource. Never caught by
+                // this service's own tests (a header-driven TestAuthHandler, not real JWT
+                // validation) — only surfaced against a real Identity-issued token.
+                options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -66,21 +76,14 @@ public static class DependencyInjection
 
         // --- Config-driven message bus (BRD §9) ---------------------------------------------
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
-        services.AddSingleton(sp =>
+        services.AddKartMessageBusManifest(sp => sp.GetRequiredService<IOptions<RabbitMqOptions>>().Value.ManifestPath);
+        services.AddKartRabbitMqConnectionFactory(sp =>
         {
             var options = sp.GetRequiredService<IOptions<RabbitMqOptions>>().Value;
-            var manifestPath = Path.IsPathRooted(options.ManifestPath)
-                ? options.ManifestPath
-                : Path.Combine(AppContext.BaseDirectory, options.ManifestPath);
-            return MessageBusManifestLoader.Load(manifestPath);
-        });
-        services.AddSingleton<IConnectionFactory>(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<RabbitMqOptions>>().Value;
-            return new ConnectionFactory { HostName = options.HostName, DispatchConsumersAsync = true };
+            return new RabbitMqConnectionSettings(options.HostName, UserName: options.UserName, Password: options.Password);
         });
 
-        services.AddHostedService<RabbitMqTopologyStartupHostedService>();
+        services.AddKartRabbitMqTopologyStartup();
         services.AddHostedService<OutboxRelayHostedService>();
         services.AddHostedService<ReadModelProjectionHostedService>();
         services.AddHostedService<UserRegisteredConsumerHostedService>();

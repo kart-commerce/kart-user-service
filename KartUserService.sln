@@ -15,6 +15,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kart.User.Api", "src\Api\Ka
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{FC9640D8-9354-4914-A41F-9B85BCFD6DE5}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "contracts", "contracts", "{5A3C2E17-9B4A-4C1E-8B3C-1F2A3B4C5D6E}"
+	ProjectSection(SolutionItems) = preProject
+		contracts\api-contract.yaml = contracts\api-contract.yaml
+		contracts\message-bus-manifest.json = contracts\message-bus-manifest.json
+		contracts\README.md = contracts\README.md
+	EndProjectSection
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kart.User.UnitTests", "tests\UnitTests\Kart.User.UnitTests.csproj", "{C502B841-1AAE-41ED-A189-771785B848FE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kart.User.IntegrationTests", "tests\IntegrationTests\Kart.User.IntegrationTests.csproj", "{09118935-E0C2-4D67-89B7-FFCD7D904215}"

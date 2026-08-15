@@ -2,6 +2,7 @@ using Kart.User.Application.Features.AddAddress;
 using Kart.User.Domain.Entities;
 using Kart.User.UnitTests.TestSupport;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Kart.User.UnitTests.Application;
 
@@ -16,7 +17,7 @@ public sealed class AddAddressCommandHandlerTests
         dbContext.UserProfiles.Add(Kart.User.Domain.Entities.UserProfile.CreateFromRegistration("user-1", null, Now));
         await dbContext.SaveChangesAsync();
 
-        var handler = new AddAddressCommandHandler(dbContext, new FixedDateTimeProvider(Now));
+        var handler = new AddAddressCommandHandler(dbContext, new FixedDateTimeProvider(Now), NullLogger<AddAddressCommandHandler>.Instance);
         var command = new AddAddressCommand("user-1", "user-1", "Shipping", "1 First St", null, "Metropolis", "NY", "12345", "US", null, true);
 
         var result = await handler.Handle(command, CancellationToken.None);
@@ -31,7 +32,7 @@ public sealed class AddAddressCommandHandlerTests
     public async Task Handle_UnknownUser_ReturnsNotFound()
     {
         await using var dbContext = InMemoryUserDbContextFactory.Create();
-        var handler = new AddAddressCommandHandler(dbContext, new FixedDateTimeProvider(Now));
+        var handler = new AddAddressCommandHandler(dbContext, new FixedDateTimeProvider(Now), NullLogger<AddAddressCommandHandler>.Instance);
         var command = new AddAddressCommand("missing-user", "missing-user", "Shipping", "1 First St", null, "Metropolis", "NY", "12345", "US", null, false);
 
         var result = await handler.Handle(command, CancellationToken.None);

@@ -19,3 +19,25 @@ jobs:
       # workflow does not yet support a sibling-repo checkout input, this is a known follow-up
       # (track as a kart-devops ticket, not something this service's own CI file can fix alone).
     secrets: inherit
+
+  migration-bundle:
+    name: Migration bundle (build + smoke check)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kart-user-service
+        uses: actions/checkout@v4
+        with:
+          path: kart-user-service
+
+      # Dockerfile.migrate cross-repo-references kart-shared/src/Kart.Shared.Messaging (same
+      # reason the ci job above needs it) — checked out as a workspace-root sibling so the
+      # `docker build` context below (".") contains both repos, matching Dockerfile.migrate's
+      # own header comment.
+      - name: Checkout kart-shared
+        uses: actions/checkout@v4
+        with:
+          repository: kart-commerce/kart-shared
+          path: kart-shared
+
+      - name: Docker build smoke check
+        run: docker build -f kart-user-service/Dockerfile.migrate -t ci-migrate-smoke-check:${{ github.sha }} .
